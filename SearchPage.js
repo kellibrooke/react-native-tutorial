@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Image
 } from 'react-native';
+import SearchResults from './SearchResults';
 
 function urlForQueryAndPage(key, value, pageNumber) {
   const data = {
@@ -34,13 +35,22 @@ export default class SearchPage extends Component<{}> {
     super(props);
     this.state = {
       searchString: 'london',
-      isLoading: false
+      isLoading: false,
+      message: '',
     };
   }
 
   _executeQuery = (query) => {
   console.log(query);
   this.setState({ isLoading: true });
+  fetch(query)
+  .then(response => response.json())
+  .then(json => this._handleResponse(json.response))
+  .catch(error =>
+     this.setState({
+      isLoading: false,
+      message: 'Something bad happened ' + error
+   }));
   };
 
   _onSearchPressed = () => {
@@ -51,6 +61,20 @@ export default class SearchPage extends Component<{}> {
   _onSearchTextChanged = (event) => {
   this.setState({ searchString: event.nativeEvent.text });
 };
+
+_handleResponse = (response) => {
+  this.setState({ isLoading: false , message: '' });
+  if (response.application_response_code.substr(0, 1) === '1') {
+      this.props.navigator.push({
+      title: 'Results',
+      component: SearchResults,
+      passProps: {listings: response.listings}
+    });
+  } else {
+    this.setState({ message: 'Location not recognized; please try again.'});
+  }
+};
+
   render() {
     const spinner = this.state.isLoading ? <ActivityIndicator size='large'/> : null;
     return (
@@ -75,6 +99,7 @@ export default class SearchPage extends Component<{}> {
         </View>
         <Image source={require('./Resources/house.png')} style={styles.image}/>
         {spinner}
+        <Text style={styles.description}>{this.state.message}</Text>
       </View>
     );
   }
